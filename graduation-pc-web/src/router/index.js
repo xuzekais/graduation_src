@@ -126,10 +126,10 @@ const router = new VueRouter({
   mode: "history"
 });
 
-router.beforeEach((to, from, next) => {
-  if (!to.meta.isPublic && !localStorage.token) {
-    return next('/login')
-  }
-  next()
-})
+// router.beforeEach((to, from, next) => {
+//   if (!to.meta.isPublic && !localStorage.token) {
+//     return next('/login')
+//   }
+//   next()
+// })
 export default router;

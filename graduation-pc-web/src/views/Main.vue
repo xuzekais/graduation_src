@@ -58,7 +58,7 @@
             <el-menu-item index="/authorityManage/menuManage">菜单管理</el-menu-item>
           </el-menu-item-group>
         </el-submenu>
-        <el-submenu index="2">
+        <!-- <el-submenu index="2">
           <template slot="title">
             <i class="el-icon-message"></i>系统设置
           </template>
@@ -67,7 +67,7 @@
             <el-menu-item index="/admin_users/create">新建管理员</el-menu-item>
             <el-menu-item index="/admin_users/list">管理员列表</el-menu-item>
           </el-menu-item-group>
-        </el-submenu>
+        </el-submenu> -->
       </el-menu>
     </el-aside>
     <el-container>
