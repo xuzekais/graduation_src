@@ -64,61 +64,57 @@ module.exports = (app) => {
     //   // console.log(response)
     //   console.log(body)
     // })
-  app.post("/admin/api/testpost",async(req,res) => {
-    let data = req.body
-    console.log(`${data}`)
-    res.json({code:200,msg:"1111",data})
+  
+  //获取初始父级列表
+  app.get("/admin/api/getInitialDepatment", async (req, res) => {
+    let data = await service.getInitialDepatment(req.query)
+    res.json( {code: 200, msg: "获取初始父级部门列表成功", data})
   })
+
+  //获取子组织列表
+  app.get("/admin/api/getSubsDepartment", async (req, res) => {
+    if(!req.query.id){
+      return res.json( {code: 400,msg: "未成功接收参数"})
+    }
+    let data = await service.getSubsDepartment(req.query)
+    res.json( {code: 200, msg: "获取子部门列表成功", data})
+  })
+
   //添加组织
   app.post("/admin/api/addDepatment", async (req, res) => {
-
-    console.log(`req.body: ${Object.prototype.toString.call(req.body) }`)
-    // res.json({code:200,msg:"111",data})
-    const tokens = `TzHMB5IyrapKxmcbhmBCOVFVIXNR5LAfFiC7i24pVCgVB1Oo3i227107LC-G5pcqiLF_JWPzyltcjAVvYj3qXkSc5tKNTWW3Qy9QEXVHE78yf-X8HYOzDMX3KiJwfu1CPmx4UiyoXrrwjyUJspBdLkxA4VFzr2z8nbhqNR8V6r7R0YcPNoTlNEf1pNFk-NbfxU51JI3NcuAjFQ4-jKsGCQ`
-    // console.log(requset);
-    let  wxData  = {
-      name: "二54555门",//企业微信部门中文名
-      parentid: "1",//企业微信父级部门ID
-      id: "10"//企业微信部门ID
-      // order: res.order,//企业微信部门排序值
-    }
-    console.log(wxData)
-    // request({
-    //   url: "https://qyapi.weixin.qq.com/cgi-bin/department/create?access_token=" +tokens,
-    //   method: "POST",
-    //   json: true,
-    //   headers: {
-    //       "content-type": "application/json",
-    //   },
-    //   body: wxData
-    // }, function(error, response, body) {
-    //   console.log(JSON.stringify(error))
-    //   console.log(`${JSON.stringify(response)}`)
-    //   console.log(`res:${JSON.stringify(body)}`)
-    // }); 
-    
-    // rq({
-    //   methods: "POST",
-      
-    //   uri: "https://qyapi.weixin.qq.com/cgi-bin/department/create",
-    //   qs:{
-    //     access_token: `psFqC1rcLp5hJ_VkUSPNsZMMCtkYAB6z_odAyLHefWaMj1fGI3wlcTk-m1cHzIMHMv-CBc-LEYxcme0HirDTBSCP_crNlUrg_fdn-JekOpmZ2FWwp8J87dJP4dVSQPlK_b-vSVBfLSf7qWTiraOe8uqMDA_oXU6wS43UR1CqLeiBb8BoQ6-MndWL40rKBQzluAJx3NfFCw8ugGVy4ZZtVQ`
-    //   },
-    //   json:true,
-    //   // headers:{
-    //   //   // 'User-Agent': 'Request-Promise',
-    //   //   // "content-type": "application/json;charset=utf-8"
-    //   // },
-    //   body:req.body
-    // }).then( res => {
-    //   console.log(`请求返回 数据::${JSON.stringify(res)}`)
-    // })
-
     let data = await service.insertDepartment(req.body)
-    console.log(`添加组织成功后返回数据:${Object.prototype.toString.call(data) }`)
-    res.json( {code:200,msg:"添加部门成功"})
+    console.log(`添加组织成功后返回数据:${JSON.stringify(data) }`)
+    if(data.code == 0){
+      res.json( {code:200,msg:"添加部门成功",data})
+    }else{
+      res.json( {code:200,msg:"数据库添加成功",data})
+    }
   })
     
+  //删除组织
+  app.get("/admin/api/deleteDepatment", async (req, res) => {
+    let data = await service.removeDepartment(req.query)
+    console.log(`返回的最终结果:${req.query}`)
+    res.json({code:200,msg:"删除部门成功",data})
+  })
+
+  //修改组织
+  app.post("/admin/api/updateDepartment", async (req, res) => {
+    let data = await service.updateDepartment(req.body)
+
+    res.json({code:200,msg:"更新部门成功",data})
+  })
+
+  //获取单个组织信息
+  app.get("/admin/api/getOneDeparment", async (req, res) => {
+    if(!req.query.id){
+      return res.json({code: 400, msg: "未成功接收参数"})
+
+    }
+    let data = await service.getOneDeparment(req.query)
+    res.json({code: 200, msg: "获取单个部门信息成功" ,data})
+ })
+
   //图片上传
   const multer = require("multer");
   const MAO = require("multer-aliyun-oss");
