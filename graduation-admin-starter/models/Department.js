@@ -23,6 +23,7 @@ const Department = new mongoose.Schema({
     type: Number,
     require: true,
     enum:[0,1],//0: 不是 1:是
+    default: 0
   },
   //父级的ID
   parentId:{

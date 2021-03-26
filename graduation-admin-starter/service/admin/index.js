@@ -9,6 +9,8 @@ const rq = require("request-promise")
 
 //1.导入模块
 const Department = require("../../models/Department")
+const role = require("../../models/Role")
+const User = require("../../models/User1")
 
 //初始化数据库
 
@@ -31,6 +33,23 @@ const insertFrist = async (data) => {
 
 
 //2.处理业务逻辑
+//添加用户
+const insertUser = async (data) => {
+  console.log(`添加组织接口传递数据: ${JSON.stringify(data)}`)
+  //1.添加用户数据到数据库
+
+}
+
+//添加角色
+const insertRole = async (data) => {
+  console.log(`添加组织接口传递数据: ${JSON.stringify(data)}`)
+  //1.添加角色数据到数据库
+  const insertObj = await new Department(data)
+  let resultData = await insertObj.save()
+    .then( res => {})
+
+}
+
 //获取初始父级列表
 const getInitialDepatment = async (data) => {
   console.log(`接口传递数据: ${JSON.stringify(data)}`)
@@ -60,6 +79,7 @@ const getSubsDepartment = async (data) => {
   //1.根据父级ID获取其子部门
   const findData = await Department.find(
     { parentId: data.id},
+    { _id: 0, __v: 0},
     (err,docs) => {
       if(err){return err}
       // console.log(`请求返回的数据: ${JSON.stringify(docs)}`)
@@ -71,7 +91,8 @@ const getSubsDepartment = async (data) => {
   for(let i = 0; i < findData.length; i++){
     let obj = {
       id: findData[i].departmentId,
-      label: findData[i].departmentName
+      label: findData[i].departmentName,
+      isLeaf: findData[i].isParent == 1 ? false : true
     }
     resultData.push(obj)
   }
@@ -95,12 +116,25 @@ const insertDepartment = async (data) => {
   //给本地数据库部门ID赋值
   data.departmentId = counterResult.seq_val +""
   console.log(`接口传递的添加组织数据: ${JSON.stringify(data)}`);
+  
   const insertObj = await new Department(data)
   
   let resultData = await insertObj.save()//保存到数据库里
     .then(async res => {
       console.log( `保存到数据库的信息: ${res}` )
-
+      //将父级组织的isParent(是否为父级)修改
+      const updataResult = await Department.updateOne(
+        {departmentId: res.parentId},
+        {$set: 
+          {isParent: 1 }
+        },
+        (err ,docs) => {
+          if(err){
+            console.log(`err: ${JSON.stringify(err)}`)
+            return err
+          }
+        }
+      )
       //这里处理企业微信需要的数据
       let  wxData  = {
         name: res.departmentName,//企业微信部门中文名
@@ -109,10 +143,8 @@ const insertDepartment = async (data) => {
         parentid: res.parentId//企业微信父级部门ID
       }
       console.log(`传递数据:${Object.prototype.toString.call(wxData) }`)
-
       // 这里调用企业微信第三方接口同步信息
       // access_token目前是写死的,还没做缓存
-      // let url = clientBaseUrl + '/user/get?access_token=' + access_token
       const requestResult = await rq({
         url: "https://qyapi.weixin.qq.com/cgi-bin/department/create?access_token=" +access_token,
         method: 'POST',
@@ -130,8 +162,6 @@ const insertDepartment = async (data) => {
           console.log(`请求错误的数据: ${JSON.stringify(error)}`)
           return err
         })
-        // resultData = requestResult
-      // console.log(requestResult)
       console.log("企业微信接口返回了吗")
       return requestResult
       
@@ -165,6 +195,30 @@ const removeDepartment = async (data) => {
         throw err 
       }
       console.log(`DOC的内容: ${JSON.stringify(doc)}`)
+    }
+  )
+  //1.修改父级组织的isParent(是否为父级)状态
+  const changeResult = await Department.findOne(
+    {parentId: data.parentId},
+    { _id : 0 , __v : 0},
+    async (err, docs) => {
+      if(err){return err}
+      console.log(`相同父级的数据: ${JSON.stringify(docs)}`)
+      if(!docs){
+        const findData = await Department.updateOne(
+          { departmentId : data.parentId},
+          { $set: {
+            isParent: 0,
+          }},
+          (err,doc) => {
+            console.log(`err: ${JSON.stringify(doc)}`)
+            if(err){
+              console.log(`err: ${JSON.stringify(err)}`)
+              return err
+            }
+          }
+        )
+      }
     }
   )
   //2.同步到企业微信
@@ -268,6 +322,7 @@ const getOneDeparment = async (data) => {
 
 module.exports = {
   insertFrist,
+  insertUser,
   getInitialDepatment,
   getSubsDepartment,
   insertDepartment,

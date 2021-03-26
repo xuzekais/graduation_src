@@ -26,6 +26,7 @@ const User = new mongoose.Schema({
   mobile:{
     type: String,
     require: true,
+    unique: true,//唯一值
   },
   //部门id
   departmentId:{

@@ -56,15 +56,31 @@ module.exports = (app) => {
     console.log(`data:${data}`)
     res.json( {code:200 ,msg:"初始化数据库成功", data })
   })
-   // requset({
-    //   url: 'https://qyapi.weixin.qq.com/cgi-bin/user/get?access_token=' + tokens +'&userid=XuZeKai',
-    //   method:'GET'
-    // },function (err,response,body) {
-    //   // console.log(err)
-    //   // console.log(response)
-    //   console.log(body)
-    // })
   
+  //添加用户
+  app.post("/admin/api/addUser", async (req, res) =>{
+    let data = await service.insertUser(req.body)
+    console.log(`添加用户成功后返回数据:${JSON.stringify(data) }`)
+    if(data.code == 0){
+      res.json( {code:200,msg:"添加部门成功",data})
+    }else{
+      console.log(`数据库:${JSON.stringify(data) }`)
+      res.json( {code:200,msg:"数据库添加成功",data})
+    }
+  })
+
+   //添加角色
+   app.post("/admin/api/addRole", async (req, res) =>{
+    let data = await service.insertRole(req.body)
+    console.log(`添加用户成功后返回数据:${JSON.stringify(data) }`)
+    if(data.code == 0){
+      res.json( {code:200,msg:"添加部门成功",data})
+    }else{
+      console.log(`数据库:${JSON.stringify(data) }`)
+      res.json( {code:200,msg:"数据库添加成功",data})
+    }
+  })
+
   //获取初始父级列表
   app.get("/admin/api/getInitialDepatment", async (req, res) => {
     let data = await service.getInitialDepatment(req.query)
@@ -87,6 +103,7 @@ module.exports = (app) => {
     if(data.code == 0){
       res.json( {code:200,msg:"添加部门成功",data})
     }else{
+      console.log(`数据库:${JSON.stringify(data) }`)
       res.json( {code:200,msg:"数据库添加成功",data})
     }
   })
