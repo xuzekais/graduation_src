@@ -9,7 +9,6 @@ const Menu = new mongoose.Schema({
   //菜单路由名称
   menuRouterName:{
     type: String,
-    require: true,
   },
   //路径
   menuPath:{
@@ -32,14 +31,18 @@ const Menu = new mongoose.Schema({
   },
   //父级的ID,原始则为空
   parentId:{
-    type: ObjectId,
+    type:  mongoose.Schema.Types.ObjectId,
 
   },
   //是否为父级
   isParent:{
     type: String,
+    require: true,
     enum:[0,1],//0: 不是,1:是
     default: 0
+  },
+  children:{
+    type: []
   }
 
 

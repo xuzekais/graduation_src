@@ -80,11 +80,6 @@
             :key="changeIndex"></my-department-choose>
         </el-form-item>
 
-        <!-- <el-form-item label="所属组织" :label-width="formLabelWidth" prop="parentId" class="parent-item">
-          <el-input v-model="addForm.nickName" placeholder="请选择所属组织"></el-input>
-        <el-button @click="dialogAddVisible = false">清空已选</el-button>
-        </el-form-item> -->
-
         <el-form-item label="组织名称" :label-width="formLabelWidth" prop="departmentName">
           <el-input v-model="addForm.departmentName" placeholder="请输入组织名称"></el-input>
         </el-form-item>

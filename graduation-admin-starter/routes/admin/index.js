@@ -69,8 +69,43 @@ module.exports = (app) => {
     }
   })
 
-   //添加角色
-   app.post("/admin/api/addRole", async (req, res) =>{
+  //获取全部菜单列表
+  app.get("/admin/api/getAllMenu", async (req, res) => {
+    let data = await service.getAllMenu()
+    res.json({code: 200, msg: "获取菜单列表成功",data})
+  })
+
+  //添加菜单
+  app.post("/admin/api/addMenu", async (req, res) =>{
+    let data = await service.insertMenu(req.body)
+    console.log(`添加菜单成功后返回数据:${JSON.stringify(data) }`)
+    if(data.code == 0){
+      res.json( {code:200,msg:"添加菜单成功",data})
+    }else{
+      console.log(`数据库:${JSON.stringify(data) }`)
+      res.json( {code:200,msg:"数据库添加成功",data})
+    }
+  })
+
+  //删除菜单
+  app.get("/admin/api/deleteMenu", async (req, res) => {
+    if(!req.query.id){
+      res.json({code:400,msg:"请求参数不对"})
+
+    }
+    let data = await service.removeMenu(req.query)
+    console.log(`返回的最终结果:${req.query}`)
+    res.json({code:200,msg:"删除菜单成功",data})
+  })
+
+  //更新组织
+  app.post("/admin/api/updateMenu", async (req, res) => {
+    let data = await service.updateMenu(req.body)
+    res.json({code:200,msg:"更新菜单成功",data})
+  })
+
+  //添加角色
+  app.post("/admin/api/addRole", async (req, res) =>{
     let data = await service.insertRole(req.body)
     console.log(`添加用户成功后返回数据:${JSON.stringify(data) }`)
     if(data.code == 0){

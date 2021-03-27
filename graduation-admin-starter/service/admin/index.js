@@ -9,7 +9,9 @@ const rq = require("request-promise")
 
 //1.导入模块
 const Department = require("../../models/Department")
+const Menu = require("../../models/Menu")
 const role = require("../../models/Role")
+
 const User = require("../../models/User1")
 
 //初始化数据库
@@ -38,6 +40,97 @@ const insertUser = async (data) => {
   console.log(`添加组织接口传递数据: ${JSON.stringify(data)}`)
   //1.添加用户数据到数据库
 
+}
+
+//获取全部菜单列表
+const getAllMenu = async () => {
+  //1.第一步查父级的菜单
+  let parentResult = await Menu.find(
+    {isParent : 1},
+    { __v : 0},
+    (err, docs) => {
+      if(err){
+        console.log(`获取菜单列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  console.log(parentResult)
+  for(let i = 0; i < parentResult.length; i++){
+    let childResult = await Menu.find(
+      {parentId: parentResult[i]._id},
+      {__v: 0},
+      (err,docs) => {
+        if(err){
+          console.log(`获取子级菜单列表失败: ${JSON.stringify(err)}`)
+          return err
+        }
+        console.log(`获取菜单列表失败: ${JSON.stringify(docs)}`)
+        return docs
+      }
+    )
+    parentResult[i]['children'] = childResult
+    console.log(parentResult[i]['children'])
+  }
+  console.log("返回数据了吗")
+  return parentResult
+}
+
+//添加菜单
+const insertMenu = async (data) => {
+  console.log(`添加菜单接口传递数据: ${JSON.stringify(data)}`)
+  //1.添加角色数据到数据库
+  const insertObj = await new Menu(data)
+  let resultData = await insertObj.save()
+    .then( res => {
+      console.log( `保存到数据库的信息: ${res}` )
+      return res
+    })
+  return {
+    code: 0,
+    data: resultData
+  }
+}
+
+//删除菜单
+const removeMenu = async (data) => {
+  console.log(`删除菜单接口传递数据: ${JSON.stringify(data)}`)
+  const menuResult = await Menu.deleteOne(
+    {_id: data.id},
+    (err ,doc) => {
+      if(err) {
+        console.log(`删除数据库出错:${err}`)
+        throw err 
+      }
+      console.log(`DOC的内容: ${JSON.stringify(doc)}`)
+    }
+  )
+  return menuResult
+}
+
+//更新菜单
+const updateMenu = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  const updataResult = await Menu.updateOne(
+    { _id : data._id},
+    { $set: {
+      menuName: data.menuName,
+      menuPath: data.menuPath,
+      order: data.order,
+      isUsed: data.isUsed,
+      parentId: data.parentId
+    }},
+    (err,doc) => {
+      console.log(`doc: ${JSON.stringify(doc)}`)
+      if(err){
+        console.log(`err: ${JSON.stringify(err)}`)
+        return err
+      }
+    }
+  )
+  return updataResult
 }
 
 //添加角色
@@ -323,6 +416,10 @@ const getOneDeparment = async (data) => {
 module.exports = {
   insertFrist,
   insertUser,
+  getAllMenu,
+  insertMenu,
+  removeMenu,
+  updateMenu,
   getInitialDepatment,
   getSubsDepartment,
   insertDepartment,
