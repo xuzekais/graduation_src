@@ -1,12 +1,8 @@
 module.exports = (app) => {
   const express = require("express");
-  const assert = require("http-assert");
-  const jwt = require("jsonwebtoken");
   const service = require('../../service/admin/index')
   const AdminUser = require("../../models/AdminUser");
   const sendEmail = require("../../plugins/sendEmail.js");
-  const rq = require("request-promise")
-  const request =require("request")
   const router = express.Router({
     mergeParams: true,
   });
@@ -38,7 +34,7 @@ module.exports = (app) => {
   });
 
   //登录校验中间件
-  // const authMiddleware = require("../../middleware/auth");
+  const authMiddleware = require("../../middleware/auth");
 
   //资源中间件
   const resourceMiddleware = require("../../middleware/resource");
@@ -46,27 +42,63 @@ module.exports = (app) => {
   //资源路由
   app.use(
     "/admin/api/rest/:resource",
-    // authMiddleware(),
+    authMiddleware(),
     resourceMiddleware(),
     router
   );
+  
+  // app.use()
+
+   //登录
+   app.post("/admin/api/login", async (req, res) => {
+    let data = await service.login(req.body)
+    console.log(data)
+    res.send({
+      token: data.token,
+      roleId: data.roleId,
+      userName: req.body.userName,
+    });
+  });
+  
   //项目初始化接口
   app.post("/frist",async (req ,res) =>{
     let data  = await service.insertFrist(req.body)
     console.log(`data:${data}`)
     res.json( {code:200 ,msg:"初始化数据库成功", data })
+    
+  })
+  
+  //获取用户列表
+  app.get("/admin/api/getUser", async (req, res) => {
+    console.log(req.query)
+    let data = await service.getUser(req.query)
+    res.json({code: 200, msg: "获取用户列表成功",data})
   })
   
   //添加用户
-  app.post("/admin/api/addUser", async (req, res) =>{
+  app.post("/admin/api/addUser", async (req, res) => {
     let data = await service.insertUser(req.body)
     console.log(`添加用户成功后返回数据:${JSON.stringify(data) }`)
     if(data.code == 0){
-      res.json( {code:200,msg:"添加部门成功",data})
+      res.json( {code:200,msg:"添加用户成功",data})
     }else{
       console.log(`数据库:${JSON.stringify(data) }`)
       res.json( {code:200,msg:"数据库添加成功",data})
     }
+  })
+
+  //删除用户
+  app.get("/admin/api/deleteUser", async (req,res) => {
+    let data = await service.removeUser(req.query)
+    console.log(`返回的最终结果:${req.query}`)
+    res.json({code:200,msg:"删除用户成功",data})
+  })
+
+  //更新用户
+  app.post("/admin/api/updateUser", async (req, res) => {
+    let data = await service.updateUser(req.body)
+
+    res.json({code:200,msg:"更新用户成功",data})
   })
 
   //获取全部菜单列表
@@ -98,22 +130,68 @@ module.exports = (app) => {
     res.json({code:200,msg:"删除菜单成功",data})
   })
 
-  //更新组织
+  //更新菜单
   app.post("/admin/api/updateMenu", async (req, res) => {
     let data = await service.updateMenu(req.body)
     res.json({code:200,msg:"更新菜单成功",data})
   })
 
+  //获取角色列表
+  app.get("/admin/api/getRole", async (req, res) => {
+    let data = await service.getRole(req.query)
+    res.json({code: 200, msg: "获取角色列表成功",data})
+  })
+  
+  //获取角色列表字典
+  app.get("/admin/api/getRoleDict", async (req, res) => {
+    let data = await service.getRoleDict(req.query)
+    res.json({code: 200, msg: "获取角色列表成功",data})
+  })
+
   //添加角色
   app.post("/admin/api/addRole", async (req, res) =>{
     let data = await service.insertRole(req.body)
-    console.log(`添加用户成功后返回数据:${JSON.stringify(data) }`)
+    console.log(`添加角色成功后返回数据:${JSON.stringify(data) }`)
     if(data.code == 0){
-      res.json( {code:200,msg:"添加部门成功",data})
+      res.json( {code:200,msg:"添加角色成功",data})
     }else{
       console.log(`数据库:${JSON.stringify(data) }`)
       res.json( {code:200,msg:"数据库添加成功",data})
     }
+  })
+
+  //删除角色
+  app.get("/admin/api/deleteRole", async (req, res) => {
+    if(!req.query.id){
+      res.json({code:400,msg:"请求参数不对"})
+    }
+    let data = await service.removeRole(req.query)
+    console.log(`返回的最终结果:${JSON.stringify(data)}`)
+    res.json({code:200,msg:"删除角色成功",data})
+  })
+
+  //更新角色
+  app.post("/admin/api/updateRole", async (req, res) => {
+    let data = await service.updateRole(req.body)
+    res.json({code:200,msg:"更新角色成功",data})
+  })
+  
+  //给角色分配菜单权限
+  app.post("/admin/api/allotMenu", async (req, res) => {
+    let data = await service.allotMenu(req.body)
+    res.json({code:200,msg:"分配成功",data})
+  })
+
+  //获取角色对应菜单权限
+  app.get("/admin/api/getRoleMenu", async (req, res) => {
+    let data = await service.getRoleMenu(req.query)
+    res.json({code:200,msg:"获取菜单数组成功",data})
+  })
+
+  //获取角色对应的菜单信息
+  app.get("/admin/api/getRoleMenuInfo", async (req, res) => {
+    let data = await service.getRoleMenuInfo(req.query)
+    res.json({code:200,msg:"获取菜单信息成功",data})
   })
 
   //获取初始父级列表
@@ -200,30 +278,30 @@ module.exports = (app) => {
   //   res.send(user)
   // })
 
-  //登录
-  app.post("/admin/api/login", async (req, res) => {
-    const {
-      username,
-      password
-    } = req.body;
-    console.log(req.body);
+  // //登录
+  // app.post("/admin/api/login", async (req, res) => {
+  //   const {
+  //     username,
+  //     password
+  //   } = req.body;
+  //   console.log(req.body);
     
-    const user = await AdminUser.findOne({
-      username,
-    }).select("+password");
-    assert(user, 422, "用户不存在");
-    const isValid = require("bcryptjs").compareSync(password, user.password);
-    assert(isValid, 422, "密码错误");
-    const token = jwt.sign({
-        id: user._id,
-      },
-      app.get("secret")
-    );
-    res.send({
-      token,
-      username,
-    });
-  });
+  //   const user = await AdminUser.findOne({
+  //     username,
+  //   }).select("+password");
+  //   assert(user, 422, "用户不存在");
+  //   const isValid = require("bcryptjs").compareSync(password, user.password);
+  //   assert(isValid, 422, "密码错误");
+  //   const token = jwt.sign({
+  //       id: user._id,
+  //     },
+  //     app.get("secret")
+  //   );
+  //   res.send({
+  //     token,
+  //     username,
+  //   });
+  // });
 
   app.post("/admin/api/email", async (req, res) => {
     console.log(req.body);

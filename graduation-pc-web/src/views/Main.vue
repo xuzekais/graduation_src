@@ -2,6 +2,14 @@
   <el-container style="height: 100vh; border: 1px solid #eee">
     <el-aside width="200px" style="background-color: rgb(238, 241, 246)">
       <el-menu router :default-active="$route.path">
+        <el-submenu v-for="(item,index) in menuData" :key="item._id" :index="index">
+          <template slot="title">
+            <i class="el-icon-message"></i>{{item.menuName}}
+          </template>
+          <el-menu-item-group v-for="cItem in item.children" :key="cItem._id">
+            <el-menu-item :index="cItem.menuPath">{{cItem.menuName}}</el-menu-item>
+          </el-menu-item-group>
+        </el-submenu>
         <!-- <el-submenu index="1">
           <template slot="title">
             <i class="el-icon-message"></i>内容管理
@@ -34,13 +42,12 @@
             <el-menu-item index="/users/list">留言评论用户列表</el-menu-item>
           </el-menu-item-group>
         </el-submenu> -->
-        <el-submenu index="3">
+        <!-- <el-submenu index="3">
           <template slot="title">
             <i class="el-icon-message"></i>健康上报
           </template>
           <el-menu-item-group>
             <template slot="title">全体人员</template>
-            <!-- <el-menu-item index="/admin_users/create">风险地区配置</el-menu-item> -->
             <el-menu-item index="/healthReport/reportProblem">上报问题明细</el-menu-item>
             <el-menu-item index="/healthReport/reportRecord">上报记录</el-menu-item>
             <el-menu-item index="/healthReport/infoNotice">消息通知</el-menu-item>
@@ -57,7 +64,7 @@
             <el-menu-item index="/authorityManage/roleManage">角色管理</el-menu-item>
             <el-menu-item index="/authorityManage/menuManage">菜单管理</el-menu-item>
           </el-menu-item-group>
-        </el-submenu>
+        </el-submenu> -->
         <!-- <el-submenu index="2">
           <template slot="title">
             <i class="el-icon-message"></i>系统设置
@@ -72,7 +79,7 @@
     </el-aside>
     <el-container>
       <el-header style="text-align: right; font-size: 12px">
-        <span>{{username}}</span>
+        <span>{{userName}}</span>
         <el-dropdown>
           <i class="el-icon-setting" style="margin-left: 10px"></i>
           <el-dropdown-menu slot="dropdown">
@@ -112,17 +119,35 @@
 export default {
   data() {
     return {
-      username: ""
+      userName: "",
+      roleId: "",
+      menuData:[],
     };
   },
   methods: {
     logout() {
       localStorage.clear();
       this.$router.push("/login");
+    },
+    async init(){
+      this.userName = localStorage.getItem("userName") || "";
+      this.roleId = localStorage.getItem("roleId") || "";
+      console.log(this.roleId )
+      if(this.roleId){
+        const res = await this.$http.get("getRoleMenuInfo?id=" + this.roleId)
+        console.log(`当前角色可使用的菜单:${JSON.stringify(res)}`)
+        this.menuData = res.data.data
+        console.log(this.menuData)
+      }
     }
   },
   created() {
-    this.username = localStorage.getItem("username") || "";
-  }
+    console.log("登录成功")
+    this.init()
+  },
+  // mounted(){
+  //   console.log("登录成功")
+
+  // }
 };
 </script>

@@ -29,16 +29,31 @@ const User = new mongoose.Schema({
     unique: true,//唯一值
   },
   //部门id
-  departmentId:{
-    type: [String],
+  departInfo:{
+    type: [
+      {
+        departmentId: String,
+        departmentName: String
+      }
+  ],
     require: true,
   },
   //角色类型
-  roleType:{
+  roleInfo:{
+    roleName:{
+      type: String,
+      require: true
+
+    },
+    _id :{
+      type: mongoose.Schema.Types.ObjectId,
+      require: true
+    }
+  },
+  gender:{
     type: String,
-    require: true,
-    default: 0,
-    // enum: [0,1,2],// 0: 普通用户 1:管理员 2:超级管理员
+    default: 1,
+    enum: [1,2] //1表示男性，2表示女性
   },
   //用户状态
   enable:{

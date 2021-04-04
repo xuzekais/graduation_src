@@ -7,13 +7,13 @@
         </div>
         <el-form class="card-body" ref="form" label-width="80px">
           <el-form-item label="用户名">
-            <el-input v-model="model.username"></el-input>
+            <el-input v-model="model.userName"></el-input>
           </el-form-item>
           <el-form-item label="密码">
             <el-input type="password" v-model="model.password"></el-input>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="logins">登录</el-button>
+            <el-button type="primary" @click="login">登录</el-button>
             <!-- <el-button type="danger" @click="register">注册</el-button> -->
           </el-form-item>
         </el-form>
@@ -31,19 +31,16 @@ export default {
   },
   methods: {
     async login() {
-      // const res = await this.$http.post("/login", this.model);
-      // localStorage.setItem("token", res.data.token);
-      // localStorage.setItem("username", res.data.username);
-      // this.$message({
-      //   type: "success",
-      //   message: "登录成功"
-      // });
+      const res = await this.$http.post("/login", this.model);
+      console.log(`登录用户的信息: ${JSON.stringify(res)}`)
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("userName", res.data.userName);
+      localStorage.setItem("roleId", res.data.roleId);
+      this.$message({
+        type: "success",
+        message: "登录成功"
+      });
       this.$router.push("/");
-    },
-    logins(){
-      console.log('进来了')
-      this.$router.push("/");
-
     },
     // async register() {
     //   const res = await this.$http.post("/register", this.model);

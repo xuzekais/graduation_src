@@ -166,7 +166,7 @@ export default {
     //获取添加组织时的父级id
     chooseNode(data){
       console.log(data)
-      this.addForm.parentId = data
+      this.addForm.parentId = data.id
     },
     //清空选择内容
     clearInupt(){

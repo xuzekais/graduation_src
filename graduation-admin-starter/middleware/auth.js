@@ -11,6 +11,8 @@ module.exports = options => {
     } = jwt.verify(token, req.app.get('secret'))
     assert(id, 401, '请先登录')
     req.user = await AdminUser.findById(id)
+    console.log("登录检验")
+    console.log(req.user)
     assert(req.user, 401, '请先登录')
     await next()
   }

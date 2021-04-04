@@ -1,16 +1,39 @@
 //企业微信token
-const access_token =  `86SeD2IU8WDRLRP6_aIOLN5QWUV1l72ap6bXUSaUUV1K-u8Jhk-RIiAh80fwonfmdST0BfwRPLRbsb7rAvcN3grdEyvOeYj9nhR3Kqfrw-RWivuB0vXIgkNlxtfUHJ64iXQDCHYLBv2xgyfu9c0I5LenLaA8jmSWWY2pERV5JunnTHBnovLWsitoRGN6HCEUmsFuCezJhK5yF3q3fUAXAw`
+let access_token =  ``
+let ab = 1
 //引入计数模块
 const Counter = require("../../models/Counter")
 //引入网络请求模块
 const request = require("request")
 const rq = require("request-promise")
-
+const assert = require("http-assert");
+const jwt = require("jsonwebtoken");
+const schedule = require("node-schedule")
+async function getToken(data) {
+  const res = await rq({
+    url:"https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=wwf591efa35a5936c0&corpsecret=" + data,
+    method: 'GET',
+    json: true,
+    headers:{
+      "content-type": "application/json"
+    },
+  })
+  .then(res => {
+    console.log(`请求返回的数据::${JSON.stringify(res)}`)
+    return res
+  })
+  console.log(res)
+  access_token = res.access_token
+}
+getToken('N73TA0f8cGsbEZzHusYdEEzb3NIkFOutioEI56lPCHg')
+schedule.scheduleJob('0 59 * * * *',async function(){
+  await getToken('N73TA0f8cGsbEZzHusYdEEzb3NIkFOutioEI56lPCHg')
+});
 
 //1.导入模块
 const Department = require("../../models/Department")
 const Menu = require("../../models/Menu")
-const role = require("../../models/Role")
+const Role = require("../../models/Role1")
 
 const User = require("../../models/User1")
 
@@ -22,52 +45,329 @@ const insertFrist = async (data) => {
     if(err) return err
     // console.log(doc)
   })
+  await Counter.create( { _id : "userName" , seq_val: 2}, function ( err, doc){
+    if(err) return err
+    // console.log(doc)
+  })
   //添加父级组织
   console.log(`data: ${JSON.stringify(data)}`)
-  let result  = await Department.create(data , function (err, doc){
+  let result  = await Department.create(
+    {
+      order: 1,
+      departmentId: "1",
+      departmentName: "学生毕设组织",
+      isParent: "1",
+      parentId: "0"
+    } , 
+    function (err, doc){
     if(err) return err
     // console.log(`doc ${doc}`)
     return doc
   })
+  let departInfo= {
+    departmentId: "1",
+    departmentName: "学生毕设组织"
+  }
+  let userResult = await User.create(
+    {
+      userName: "XuZeKai",
+      password:"JS123456",
+      nickName: "许泽铠",
+      mobile:"18420014917",
+      departInfo: departInfo
+    },
+  )
   // console.log(`结果: ${result}`)
-  return result
+  return {
+    result,
+    userResult
+  }
 }
 
 
 //2.处理业务逻辑
-//添加用户
-const insertUser = async (data) => {
-  console.log(`添加组织接口传递数据: ${JSON.stringify(data)}`)
-  //1.添加用户数据到数据库
 
+//登录
+const login = async (data) => {
+  console.log(`接口传递数据:${JSON.stringify(data)}`)
+  const user = await User.findOne({
+    userName: data.userName,
+  }).select("+password");
+  // console.log(user)
+  assert(user, 422, "用户不存在");
+  const isValid = require("bcryptjs").compareSync(data.password, user.password);
+  assert(isValid, 422, "密码错误");
+  const token = jwt.sign({
+      id: user._id,
+    },
+    "i2u34y12oi3u4y8"
+  );
+  return {
+    token,
+    roleId: user.roleInfo._id
+  }
 }
 
-//获取全部菜单列表
-const getAllMenu = async () => {
-  //1.第一步查父级的菜单
-  let parentResult = await Menu.find(
-    {isParent : 1},
+
+//获取用户列表
+const getUser = async (data) => {
+  let searchObj = {}
+  if(data){
+    console.log(`接口传递数据: ${JSON.stringify(data)}`)
+    let searchFrom = JSON.parse(data.searchFrom)
+    searchObj={
+      userName: new RegExp(searchFrom.userName),
+      nickName: new RegExp(searchFrom.nickName),
+      syncStatus: searchFrom.syncStatus,
+      enable : searchFrom.enable,
+      gender: searchFrom.gender,
+      'roleInfo.roleName': new RegExp(searchFrom.roleName),
+    }
+  }
+  
+  
+  //处理搜索条件
+  
+  if(!searchObj.userName){
+    delete searchObj.userName
+  }
+  if(!searchObj.syncStatus){
+    delete searchObj.syncStatus
+  }
+  if(!searchObj.enable){
+    delete searchObj.enable
+  }
+  if(!searchObj.gender){
+    delete searchObj.gender
+  }
+  if(searchObj.userName == '/(?:)/'){
+    delete searchObj.userName
+  }
+  if(searchObj.nickName == '/(?:)/'){
+    delete searchObj.nickName
+  }
+  if(searchObj['roleInfo.roleName'] == '/(?:)/'){
+    delete searchObj['roleInfo.roleName']
+  }
+  console.log(searchObj)
+  //搜索数据库
+  let parentResult = await User.find(
+    searchObj,
     { __v : 0},
     (err, docs) => {
       if(err){
-        console.log(`获取菜单列表失败: ${JSON.stringify(err)}`)
+        // console.log(`获取角色列表失败: ${JSON.stringify(err)}`)
         return err
       }
       // console.log(`获取菜单列表成功: ${docs}`)
       return docs
     }
   )
-  console.log(parentResult)
+  // console.log(parentResult)
+  console.log("返回数据了吗")
+  return parentResult
+}
+
+//添加用户
+const insertUser = async (data) => {
+  // console.log(`添加组织接口传递数据: ${JSON.stringify(data)}`)
+  //1.根据自定规则生成username
+  const counterResult = await Counter.findOneAndUpdate(
+    { _id: 'userName' }, 
+    { $inc: { seq_val: 1 } }, 
+    {new: true},
+    (err, doc) => {
+      if(err) {return {msg : "获取自增ID失败",err :err }}
+      // data.departmentId = doc.seq_val +""
+      return doc
+    }
+  )
+  data.userName = 'PG' + ( 90000 + Number(counterResult.seq_val) )
+  data.password = "JS123456"
+  //2.将数据写入数据库中
+  // console.log(`接口传递的添加组织数据: ${JSON.stringify(data)}`);
+  
+  const insertObj = await new User(data)
+  
+  let resultData = await insertObj.save()
+    .then( async res => {
+      console.log( `保存到数据库的信息: ${res}` )
+      let arr=[]
+      for(let i =0; i<res.departInfo.length;i++){
+        arr.push(res.departInfo[i].departmentId)
+      }
+      //这里处理企业微信需要的数据
+      let  wxData  = {
+        userid: res.userName,//企业微信唯一标识
+        name: res.nickName,//企业微信部门中文名
+        mobile: res.mobile,//企业微信对应手机号
+        department: arr,//企业微信用户所属部门
+        gender: res.gender, //企业微信用户性别
+        enable: res.enable,//企业微信是否使用该用户
+      }
+      console.log(`企业微信传递数据:${JSON.stringify(wxData) }`)
+      const requestResult = await rq({
+        url: "https://qyapi.weixin.qq.com/cgi-bin/user/create?access_token=" +access_token,
+        method: 'POST',
+        json: true,
+        headers:{
+          "content-type": "application/json"
+        },
+        body: wxData
+      })
+        .then( res => {
+          console.log(`请求返回的数据::${JSON.stringify(res)}`)
+          return res
+        })
+        .catch( err => {
+          console.log(`请求错误的数据: ${JSON.stringify(error)}`)
+          return err
+        })
+      console.log("企业微信接口返回了吗")
+      return requestResult
+    })
+    console.log(resultData)
+    if(resultData.errcode == 0){
+      return {
+        code: 0,
+        msg: "同步企业微信数据成功",
+        data: resultData
+      }
+    }else{
+      return {
+        code: 1,
+        msg: "同步企业微信数据失败",
+        data: resultData
+      }
+    }
+}
+
+//删除用户
+const removeUser = async (data) => {
+  //1.删除数据库中的信息
+  console.log(`${JSON.stringify(data)}`)
+  const userResult = await User.deleteOne(
+      {userName: data.userName},
+      (err ,doc) => {
+      if(err) {
+        console.log(`删除数据库出错:${err}`)
+        throw err 
+      }
+      console.log(`DOC的内容: ${JSON.stringify(doc)}`)
+    }
+  )
+  //同步到企业微信
+  const requestResult = await rq({
+    uri: "https://qyapi.weixin.qq.com/cgi-bin/user/delete",
+    qs:{
+      access_token: access_token,
+      userid: data.userName
+    },
+    method: 'GET',
+    json: true,
+    headers:{
+      "content-type": "application/json"
+    },
+  })
+    .then( res => {
+      console.log(`请求返回的数据::${JSON.stringify(res)}`)
+      return res
+    })
+    .catch( err => {
+      console.log(`请求错误的数据: ${JSON.stringify(error)}`)
+      return err
+    })
+  return requestResult
+}
+
+//更新用户
+const updateUser = async (data) => {
+  //1.更新数据库信息
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  const updataResult = await User.updateOne(
+    { userName : data.userName},
+    { $set: {
+      nickName: data.nickName,
+      departInfo: data.departInfo,
+      roleInfo: data.roleInfo,
+      gender: data.gender
+    }},
+    (err,doc) => {
+      console.log(`err: ${JSON.stringify(doc)}`)
+      if(err){
+        console.log(`err: ${JSON.stringify(err)}`)
+        return err
+      }
+    }
+  )
+  if(updataResult.n == 1 ){
+    let arr=[]
+    for(let i =0; i<data.departInfo.length;i++){
+      arr.push(data.departInfo[i].departmentId)
+    }
+    let  wxData  = {
+      userid: data.userName,
+      name: data.nickName,//企业微信部门中文名
+      department:arr,//企业微信用户所属部门
+      gender: data.gender, //企业微信用户性别
+    }
+    const requestResult = await rq({
+      uri: "https://qyapi.weixin.qq.com/cgi-bin/user/update",
+      qs:{
+        access_token: access_token,
+      },
+      method: 'POST',
+      json: true,
+      headers:{
+        "content-type": "application/json"
+      },
+      body: wxData
+    })
+      .then( res => {
+        console.log(`返回的数据:${JSON.stringify(res)}`)
+        return res
+      })
+      .catch( err => {
+        console.log(`报错信息:${JSON.stringify(err)}`)
+        return err
+      })
+    //3.返回数据
+    return requestResult
+  }else{
+    return {
+      code:1,
+      msg: "接口请求失败",
+    }
+  }
+}
+
+//获取全部菜单列表
+const getAllMenu = async () => {
+  //1.第一步查父级的菜单
+  console.log(ab)
+  let parentResult = await Menu.find(
+    {isParent : 1},
+    { __v : 0},
+    (err, docs) => {
+      if(err){
+        // console.log(`获取菜单列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  // console.log(parentResult)
   for(let i = 0; i < parentResult.length; i++){
     let childResult = await Menu.find(
       {parentId: parentResult[i]._id},
       {__v: 0},
       (err,docs) => {
         if(err){
-          console.log(`获取子级菜单列表失败: ${JSON.stringify(err)}`)
+          // console.log(`获取子级菜单列表失败: ${JSON.stringify(err)}`)
           return err
         }
-        console.log(`获取菜单列表失败: ${JSON.stringify(docs)}`)
+        // console.log(`获取菜单列表失败: ${JSON.stringify(docs)}`)
         return docs
       }
     )
@@ -133,14 +433,198 @@ const updateMenu = async (data) => {
   return updataResult
 }
 
+//获取角色列表
+const getRole = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  let parentResult = await Role.find(
+    {roleName: new RegExp(data.roleName) },
+    { __v : 0},
+    (err, docs) => {
+      if(err){
+        // console.log(`获取角色列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  // console.log(parentResult)
+  console.log("返回数据了吗")
+  return parentResult
+}
+
+//获取角色列表字典
+const getRoleDict = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  let parentResult = await Role.find(
+    {},
+    { 
+      roleName : 1,
+      _id: 1
+    },
+    (err, docs) => {
+      if(err){
+        // console.log(`获取角色列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  // console.log(parentResult)
+  console.log("返回数据了吗")
+  return parentResult
+}
+
 //添加角色
 const insertRole = async (data) => {
-  console.log(`添加组织接口传递数据: ${JSON.stringify(data)}`)
+  console.log(`添加角色接口传递数据: ${JSON.stringify(data)}`)
   //1.添加角色数据到数据库
-  const insertObj = await new Department(data)
+  const insertObj = await new Role(data)
   let resultData = await insertObj.save()
-    .then( res => {})
+    .then( res => {
+      console.log( `保存到数据库的信息: ${res}` )
+      return res
+    })
+  return {
+    code: 0,
+    data: resultData
+  }
+}
 
+//删除角色
+const removeRole = async (data) => {
+  console.log(`删除角色接口传递数据: ${JSON.stringify(data)}`)
+  const roleResult = await Role.deleteOne(
+    {_id: data.id},
+    (err ,doc) => {
+      if(err) {
+        console.log(`删除数据库出错:${err}`)
+        throw err 
+      }
+      console.log(`DOC的内容: ${JSON.stringify(doc)}`)
+    }
+  )
+  return roleResult
+}
+
+//更新角色
+const updateRole = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  const updataResult = await Role.updateOne(
+    { _id : data._id},
+    { $set: {
+      roleName: data.roleName,
+      roleCode: data.roleCode,
+      description: data.description,
+      menuData: data.menuData,
+    }},
+    (err,doc) => {
+      console.log(`doc: ${JSON.stringify(doc)}`)
+      if(err){
+        console.log(`err: ${JSON.stringify(err)}`)
+        return err
+      }
+    }
+  )
+  return updataResult
+}
+
+//给角色分配菜单权限
+const allotMenu = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  const updataResult = await Role.updateOne(
+    { _id : data._id},
+    { $set: {
+      menuData: data.menuData,
+    }},
+    (err,doc) => {
+      console.log(`doc: ${JSON.stringify(doc)}`)
+      if(err){
+        console.log(`err: ${JSON.stringify(err)}`)
+        return err
+      }
+    }
+  )
+  return updataResult
+}
+
+//获取角色对应菜单权限
+const getRoleMenu = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  let parentResult = await Role.findOne(
+    {_id:  data.id },
+    {menuData : 1},
+    (err, docs) => {
+      if(err){
+        // console.log(`获取角色列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  let n = parentResult.menuData.pop()
+  console.log(n)
+  for(let i = 0; i< n; i++){
+    parentResult.menuData.pop()
+  }
+  console.log("返回数据了吗")
+  return parentResult
+}
+
+//获取角色对应的菜单信息
+const getRoleMenuInfo = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  let parentResult = await Role.findOne(
+    {_id:  data.id },
+    {menuData : 1},
+    (err, docs) => {
+      if(err){
+        // console.log(`获取角色列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  parentResult.menuData.pop()
+  // console.log(parentResult)
+  //获取菜单信息
+  const menuResult = await Menu.find(
+    {_id: {$in : parentResult.menuData}},
+    {__v: 0 },
+    (err, docs) => {
+      if(err){
+        console.log(`获取菜单列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  // console.log(menuResult)
+  //处理菜单信息
+  let lastData = []
+  for(let i = 0; i<menuResult.length; i++){
+    if(menuResult[i].isParent == 1){
+      lastData.push(menuResult[i])
+    }
+  }
+  for(let i = 0; i<menuResult.length; i++){
+    for(let j = 0; j <lastData.length; j++){
+      // console.log(menuResult[i].parentId)
+      // console.log(lastData[j]._id)
+      // console.log(String( menuResult[i].parentId) == String(lastData[j]._id) )
+      if(String( menuResult[i].parentId) == String(lastData[j]._id)){
+        lastData[j].children.push(menuResult[i])
+      }
+    }
+  }
+  // console.log(lastData)
+
+  // console.log("返回数据了吗")
+  return lastData
 }
 
 //获取初始父级列表
@@ -235,7 +719,7 @@ const insertDepartment = async (data) => {
         order: res.order,//企业微信部门排序值
         parentid: res.parentId//企业微信父级部门ID
       }
-      console.log(`传递数据:${Object.prototype.toString.call(wxData) }`)
+      // console.log(`传递数据:${Object.prototype.toString.call(wxData) }`)
       // 这里调用企业微信第三方接口同步信息
       // access_token目前是写死的,还没做缓存
       const requestResult = await rq({
@@ -415,11 +899,28 @@ const getOneDeparment = async (data) => {
 
 module.exports = {
   insertFrist,
+  login,
+  //数据字典
+  getRoleDict,
+  //用户管理
+  getUser,
   insertUser,
+  removeUser,
+  updateUser,
+  //菜单管理
   getAllMenu,
   insertMenu,
   removeMenu,
   updateMenu,
+  //角色管理
+  getRole,
+  insertRole,
+  removeRole,
+  updateRole,
+  allotMenu,
+  getRoleMenu,
+  getRoleMenuInfo,
+  //组织管理
   getInitialDepatment,
   getSubsDepartment,
   insertDepartment,

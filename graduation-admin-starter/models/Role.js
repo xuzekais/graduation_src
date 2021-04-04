@@ -10,7 +10,6 @@ const Role = new mongoose.Schema({
   //角色编码
   roleCode:{
     type: String,
-    require: true,
   },
   //备注描述
   description:{
@@ -20,14 +19,11 @@ const Role = new mongoose.Schema({
   //角色类型
   roleType:{
     type: String,
-    require: true,
-    unique: true,//唯一值
     // enum: [0,1,2],// 0: 普通用户 1:管理员 2:超级管理员
   },
   //菜单
   menuData:{
     type:[String],
-    require: true,
   },
   //创建时间
   creatTime:{
