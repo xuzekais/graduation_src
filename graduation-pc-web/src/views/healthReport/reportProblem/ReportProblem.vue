@@ -116,9 +116,21 @@
             </template>
           </el-table-column>
           <el-table-column
-            prop="optionTitle"
+            prop="sourceList"
             label="答案来源"
             align='center'>
+            <template slot-scope="scope">
+              <div v-if="scope.row.optionType != '3'">
+                <span 
+                  v-for="item in scope.row.sourceList"
+                  :key="item.value">
+                  {{item.label}}
+                </span>
+              </div>
+              <div v-else>
+                <span>用户自行输入答案</span>
+              </div>
+            </template>
           </el-table-column>
           <el-table-column
             prop="isEnable"
@@ -131,7 +143,7 @@
                 active-value='1'
                 inactive-value='0'
                 :active-text="scope.row.isEnable== '1'? '启用':'不启用'"
-                >
+                @change="handleEnable(scope.row)">
               </el-switch>
             </template>
           </el-table-column>
@@ -148,27 +160,16 @@
             prop="order"
             label="填报顺序"
             align='center'
-            width="100"
-            >
+            width="100">
           </el-table-column>
           <el-table-column
             label="操作"
             width="200">
             <template slot-scope="scope">
               <el-button 
-                @click="handleSend(scope.row)" 
-                type="text" 
-                size="small"
-                style="color:#e6a23c;"
-                v-if="scope.row.noticeType == '2' ? (scope.row.sendSataus == '2' ? false : true):true">
-                发送
-              </el-button>
-              <el-button 
                 @click="handleEdit(scope.row)" 
                 type="text" 
-                size="small"
-                :disabled="scope.row.noticeType == '2' ? (scope.row.sendSataus == '2' ? true : false):false">
-                {{scope.row.noticeType == '2' ? (scope.row.sendSataus == '2' ? '不可编辑' : '编辑'):'编辑'}}
+                size="small">编辑
               </el-button>
               <el-button @click="handleDelete(scope.row)" type="text" size="small" style="color:#F56C6C;">删除</el-button>
             </template>
@@ -188,7 +189,7 @@
     </footer>
 
     <!-- 添加用户弹窗 -->
-    <el-dialog :title="this.modelType == 0 ? '新增选项' : '编辑选项'" 
+    <el-dialog :title="this.modelType == 1 ? '新增选项' : '编辑选项'" 
                :visible.sync="dialogAddVisible"
                class="add-dialog"
                @closed="clearAddDialog">
@@ -213,7 +214,7 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="是否启用" :label-width="formLabelWidth" prop="isEnable">
+        <!-- <el-form-item label="是否启用" :label-width="formLabelWidth" prop="isEnable">
           <el-select v-model="dialogForm.isEnable" placeholder="请选择是否启用">
             <el-option
               v-for="item in enableOptions"
@@ -222,7 +223,7 @@
               :value="item.value">
             </el-option>
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="填报排序" :label-width="formLabelWidth" prop="order">
           <el-input 
@@ -243,51 +244,54 @@
           </el-select>
         </el-form-item>
         
-        <el-form-item label="答案来源" :label-width="formLabelWidth" prop="sourceList">
-          <section 
-            v-for="(item, index) in dialogForm.sourceList"
-            :key="index">
-            <section v-if="index == 0" style="display: flex;">
-              <el-input 
-                v-model="dialogForm.sourceList[index].label"
-                placeholder="请输入自定义答案"
-                clearable
-                @keyup.enter.native="addSourceList"
-                >
-              </el-input>
-              <el-button 
-                type="primary" 
-                icon="el-icon-plus" 
-                plain 
-                circle 
-                style="margin-left:10px;"
-                @click="addSourceList">
-              </el-button>
+        <div v-show="dialogForm.optionType != '3'">
+          <el-form-item label="答案来源" :label-width="formLabelWidth" prop="sourceList" required>
+            <section 
+              v-for="(item, index) in dialogForm.sourceList"
+              :key="index">
+              <section v-if="index == 0" style="display: flex;">
+                <el-input 
+                  v-model="dialogForm.sourceList[index].label"
+                  placeholder="请输入自定义答案"
+                  clearable
+                  @keyup.enter.native="addSourceList"
+                  >
+                </el-input>
+                <el-button 
+                  type="primary" 
+                  icon="el-icon-plus" 
+                  plain 
+                  circle 
+                  style="margin-left:10px;"
+                  @click="addSourceList">
+                </el-button>
+              </section>
+              <section v-if="index !=0" style="display:flex;margin-top:10px;">
+                <el-input 
+                  v-model="dialogForm.sourceList[index].label"
+                  placeholder="请输入自定义答案"
+                  clearable
+                  @keyup.enter.native="addSourceList"
+                  >
+                </el-input>
+                <el-button 
+                  type="danger" 
+                  icon="el-icon-delete" 
+                  plain 
+                  circle 
+                  style="margin-left:10px;"
+                  @click="removeSourceList(index)">
+                </el-button>
+              </section>
             </section>
-            <section v-if="index !=0" style="display:flex;margin-top:10px;">
-              <el-input 
-                v-model="dialogForm.sourceList[index].label"
-                placeholder="请输入自定义答案"
-                clearable
-                @keyup.enter.native="addSourceList"
-                >
-              </el-input>
-              <el-button 
-                type="danger" 
-                icon="el-icon-delete" 
-                plain 
-                circle 
-                style="margin-left:10px;"
-                @click="removeSourceList(index)">
-              </el-button>
-            </section>
-          </section>
-        </el-form-item>
+          </el-form-item>
+        </div>
+        
 
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="clearAddDialog">取 消</el-button>
-        <el-button type="primary" @click="addUser">确 定</el-button>
+        <el-button type="primary" @click="addProblem">确 定</el-button>
       </div>
     </el-dialog>
   </div>
@@ -326,34 +330,61 @@ export default {
       ],
       //表格数据
       tableData:[
-        {
-          optionTitle:'42',//选项标题
-          optionType: '1',//选项类型
-          isRequired: '1',//是否必填
-          isEnable:'1',//是否启用
-          order:'1',//填报顺序
-          sourceList:[{value: '0', label:'否'},{value: '1', label:'是'}]
-       }
+        // {
+        //   optionTitle:'42',//选项标题
+        //   optionType: '1',//选项类型
+        //   isRequired: '1',//是否必填
+        //   isEnable:'1',//是否启用
+        //   order:'1',//填报顺序
+        //   sourceList:[{value: '0', label:'否'},{value: '1', label:'是'}]
+        // }
       ],
       //添加选项的窗口
       dialogAddVisible:false,
       formLabelWidth:'80px',
       //窗口类型
-      modelType: 0,
+      modelType: 1,
       //窗口表单数据
       dialogForm:{
         optionTitle: '',//选项标题
-        optionType: '',//选项类型
-        isEnable:'',//是否启用
-        isRequired: '',//是否必填
-        order: '',//填报排序
+        optionType: '1',//选项类型
+        // isEnable:'',//是否启用
+        isRequired: '0',//是否必填
+        order: '1',//填报排序
         sourceList:[{value: '0',label:''}],//答案来源
       },
       //窗口校验规则
-      dialogRules:[]
+      dialogRules:{
+        optionTitle:[{required:true,message:"选项标题不能为空", trigger:"blur" }],
+        optionType:[{required:true,message:"请选择选项类型", trigger:"change" }],
+        isRequired:[{required:true,message:"请选择是否必填", trigger:"change" }],
+      }
     }
   },
   methods: {
+    //初始化
+    init(){
+      this.getProblem()
+    },
+    //获取内容列表
+    async getProblem(){
+      const res = await this.$http.get("getProblemList?searchFrom=" + JSON.stringify(this.searchFrom))
+      console.log(`获取的内容列表数据: ${JSON.stringify(res)}`)
+      this.tableData = res.data.data
+    },
+    //搜索
+    handleSearch(){
+      console.log(this.searchFrom)
+      this.getProblem()
+    },
+    //重置
+    handleReset(){
+      this.searchFrom.optionTitle = ''
+      this.searchFrom.optionType = ''
+      this.searchFrom.isRequired = ''
+      this.searchFrom.isEnable = ''
+      this.getProblem()
+    },
     //添加选项前的准备
     showAddDialog(){
       this.dialogAddVisible= true
@@ -379,26 +410,86 @@ export default {
     //编辑前的准备
     handleEdit(data){
       console.log(data)
+      this.modelType = 2
+      this.dialogForm._id = data._id
       this.dialogForm.optionTitle = data.optionTitle
       this.dialogForm.optionType = data.optionType
-      this.dialogForm.isEnable = data.isEnable
+      // this.dialogForm.isEnable = data.isEnable
       this.dialogForm.order = data.order
       this.dialogForm.isRequired = data.isRequired
       this.dialogForm.sourceList = data.sourceList
-      // this.dialogForm.order = data.order
       this.dialogAddVisible = true
+      console.log(this.dialogForm)
     },
     //取消弹窗
     clearAddDialog(){
+      this.modelType = 1
       this.dialogForm.optionTitle = ''
-      this.dialogForm.optionType = ''
-      this.dialogForm.isEnable = ''
-      this.dialogForm.order = ''
-      this.dialogForm.isRequired = ''
+      this.dialogForm.optionType = '1'
+      // this.dialogForm.isEnable = ''
+      this.dialogForm.order = '1'
+      this.dialogForm.isRequired = '0'
       this.dialogForm.sourceList = [{value: '0',label:''}]
       this.dialogAddVisible = false
     },
-  }
+    //确认添加或修改问题
+    addProblem(){
+      this.$refs['dialogForm'].validate(async (valid) => {
+        if (valid) {
+          //判断是否需要用户自定义答案
+          if(this.dialogForm.optionType != '3'){
+            //判断答案是否为空
+            if(this.dialogForm.sourceList[0].label == ''){
+              this.$message.error("请输入至少一个自定义答案")
+              return false
+            }
+          }
+          //处理答案来源数据
+          if(this.dialogForm.sourceList[this.dialogForm.sourceList.length - 1].label == ''){
+            this.dialogForm.sourceList.pop()
+          }
+          //区分添加和编辑接口
+          console.log(this.dialogForm)
+          if(this.modelType == 1){
+            const res = await this.$http.post("addProblem",this.dialogForm)
+            console.log(`添加内容接口返回数据: ${JSON.stringify(res)}`)
+            this.$message.success("添加成功")
+          }else{
+            const res = await this.$http.post("updateProblem",this.dialogForm)
+            console.log(`添加内容接口返回数据: ${JSON.stringify(res)}`)
+            this.$message.success("修改成功")
+          }
+          
+          this.getProblem()
+          // this.clearAddDialog()
+          this.dialogAddVisible = false
+        }
+      });
+    },
+    //删除问题
+    async handleDelete(data){
+      console.log(data)
+      const res = await this.$http.get("deleteProblem?id=" + data._id)
+      console.log(`删除接口返回的数据:${JSON.stringify(res)}`)
+      if(res.data.code == 200){
+        this.$message.success("删除成功")
+        this.getProblem()
+      }
+    },
+    //处理启用
+    async handleEnable(data){
+      console.log(data)
+      const res = await this.$http.get("getEnable?id=" + data._id + '&isEnable=' + data.isEnable)
+      console.log(`删除接口返回的数据:${JSON.stringify(res)}`)
+      if(res.data.code == 200){
+        this.$message.success("更新成功")
+        this.getProblem()
+      } 
+    },
+  },
+  created() {
+    this.init()
+  },
 }
 </script>
 

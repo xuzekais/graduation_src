@@ -293,7 +293,7 @@ export default {
     },
     //获取用户列表
     async getUserList(){
-      console.log(this.searchFrom);
+      console.log(JSON.stringify(this.searchFrom));
       const res = await this.$http.get("getUser?searchFrom=" + JSON.stringify(this.searchFrom))
       console.log(`获取列表数据:${JSON.stringify(res)}`)
       this.tableData = res.data.data

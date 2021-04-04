@@ -25,7 +25,7 @@ async function getToken(data) {
   console.log(res)
   access_token = res.access_token
 }
-getToken('N73TA0f8cGsbEZzHusYdEEzb3NIkFOutioEI56lPCHg')
+// getToken('N73TA0f8cGsbEZzHusYdEEzb3NIkFOutioEI56lPCHg')
 schedule.scheduleJob('0 59 * * * *',async function(){
   await getToken('N73TA0f8cGsbEZzHusYdEEzb3NIkFOutioEI56lPCHg')
 });
@@ -34,9 +34,8 @@ schedule.scheduleJob('0 59 * * * *',async function(){
 const Department = require("../../models/Department")
 const Menu = require("../../models/Menu")
 const Role = require("../../models/Role1")
-
 const User = require("../../models/User1")
-
+const Problem = require("../../models/Problem")
 //初始化数据库
 
 const insertFrist = async (data) => {
@@ -124,10 +123,7 @@ const getUser = async (data) => {
       'roleInfo.roleName': new RegExp(searchFrom.roleName),
     }
   }
-  
-  
   //处理搜索条件
-  
   if(!searchObj.userName){
     delete searchObj.userName
   }
@@ -895,6 +891,113 @@ const getOneDeparment = async (data) => {
   return findData
 }
 
+//获取申报内容列表
+const getProblemList = async (data) => {
+  console.log(`接口传递数据: ${JSON.stringify(data)}`)
+  let searchFrom = JSON.parse(data.searchFrom)
+
+  let searchObj = {
+    optionTitle: new RegExp(searchFrom.optionTitle),
+    optionType: searchFrom.optionType,
+    isRequired: searchFrom.isRequired,
+    isEnable: searchFrom.isEnable,
+  }
+  //处理搜索条件
+  if(!searchObj.optionType){
+    delete searchObj.optionType
+  }
+  if(!searchObj.isRequired){
+    delete searchObj.isRequired
+  }
+  if(!searchObj.isEnable){
+    delete searchObj.isEnable
+  }
+  if(searchObj.optionTitle == '/(?:)/'){
+    delete searchObj.optionTitle
+  }
+  console.log(searchObj)
+  const parentResult = await Problem.find(
+    searchObj,
+    { __v : 0},
+    (err, docs) => {
+      if(err){
+        // console.log(`获取角色列表失败: ${JSON.stringify(err)}`)
+        return err
+      }
+      // console.log(`获取菜单列表成功: ${docs}`)
+      return docs
+    }
+  )
+  // console.log(parentResult)
+  console.log("返回数据了吗")
+  return parentResult
+}
+
+//添加申报内容
+const insertProblem = async (data) => {
+  console.log(`添加参数: ${JSON.stringify(data)}`)
+  const insertObj = await new Problem(data).save()
+  return insertObj
+}
+
+//删除申报内容
+const deleteProblem = async (data) => {
+  console.log(`删除参数: ${JSON.stringify(data)}`)
+  const res = await Problem.deleteOne(
+    {_id: data.id},
+    (err, doc) => {
+      if(err) {
+        console.log(`删除数据库出错:${err}`)
+        throw err 
+      }
+      console.log(`DOC的内容: ${JSON.stringify(doc)}`)
+      return doc
+    }
+  )
+  return res
+}
+
+//修改申报内容
+const updateProblem = async (data) => {
+  console.log(`编辑删除参数: ${JSON.stringify(data)}`)
+  const updataResult = await Problem.updateOne(
+    { _id : data._id},
+    { $set: {
+      optionTitle: data.optionTitle,
+      optionType: data.optionType,
+      isRequired: data.isRequired,
+      order: data.order,
+      sourceList: data.sourceList
+    }},
+    (err,doc) => {
+      console.log(`err: ${JSON.stringify(doc)}`)
+      if(err){
+        console.log(`err: ${JSON.stringify(err)}`)
+        return err
+      }
+    }
+  )
+  return updataResult
+}
+
+//启用申报内容
+const getEnable = async (data) => {
+  console.log(`编辑删除参数: ${JSON.stringify(data)}`)
+  const updataResult = await Problem.updateOne(
+    { _id : data.id},
+    { $set: {
+      isEnable: data.isEnable
+    }},
+    (err,doc) => {
+      console.log(`err: ${JSON.stringify(doc)}`)
+      if(err){
+        console.log(`err: ${JSON.stringify(err)}`)
+        return err
+      }
+    }
+  )
+  return updataResult
+}
 //3.导出
 
 module.exports = {
@@ -926,5 +1029,11 @@ module.exports = {
   insertDepartment,
   removeDepartment,
   updateDepartment,
-  getOneDeparment
+  getOneDeparment,
+  //申报内容管理
+  getProblemList,
+  insertProblem,
+  deleteProblem,
+  updateProblem,
+  getEnable
 }

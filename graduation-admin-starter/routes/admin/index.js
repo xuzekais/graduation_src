@@ -245,6 +245,57 @@ module.exports = (app) => {
     res.json({code: 200, msg: "获取单个部门信息成功" ,data})
  })
 
+  //获取申报内容列表
+  app.get("/admin/api/getProblemList", async (req, res) => {
+    let data = await service.getProblemList(req.query)
+    console.log(`申报内容列表接口返回数据: ${JSON.stringify(data)}`)
+    res.json( {code: 200, msg: "获取申报内容列表成功", data})
+  })
+
+  //添加申报内容
+  app.post("/admin/api/addProblem", async (req, res) => {
+    let data = await service.insertProblem(req.body)
+    console.log(`添加申报内容接口返回数据: ${JSON.stringify(data)}`)
+    res.json({
+      code: 200,
+      msg:'添加内容成功',
+      data
+    })
+  })
+ 
+  //删除申报内容
+  app.get("/admin/api/deleteProblem", async (req, res) => {
+    let data = await service.deleteProblem(req.query)
+    console.log(`删除申报内容接口返回数据: ${JSON.stringify(data)}`)
+    res.json({
+      code: 200,
+      msg:'删除内容成功',
+      data
+    })
+  })
+
+  //修改申报内容
+  app.post("/admin/api/updateProblem", async (req, res) => {
+    let data = await service.updateProblem(req.body)
+    console.log(`更新申报内容接口返回数据: ${JSON.stringify(data)}`)
+    res.json({
+      code: 200,
+      msg:'更新内容成功',
+      data
+    })
+  })
+
+  //启用申报内容
+  app.get("/admin/api/getEnable", async (req, res) => {
+    let data = await service.getEnable(req.query)
+    console.log(`是否启用内容接口返回数据: ${JSON.stringify(data)}`)
+    res.json({
+      code: 200,
+      msg:'更新成功',
+      data
+    })
+  })
+
   //图片上传
   const multer = require("multer");
   const MAO = require("multer-aliyun-oss");

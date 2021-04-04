@@ -281,7 +281,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="clearAddDialog">取 消</el-button>
-        <el-button type="primary" @click="addUser">确 定</el-button>
+        <el-button type="primary" @click="addDialog">确 定</el-button>
       </div>
     </el-dialog>
 
@@ -313,13 +313,15 @@ export default {
         isEngage:'',//是否接触过疑似患者
         peopleStatus:'',//人员状态
         exAnswerList:[],//额外的答案信息
+        exProblemList:[],//额外的问题
       },
       //弹窗的校验规则
       dialogRules:{
-        isGoDanger:[{ required: true, message: '请选择是否去过风险地区', trigger: 'blur' }],
-        isVaccine:[{ required: true, message: '请选择是否打过疫苗', trigger: 'blur' }],
-        isEngage:[{ required: true, message: '请选择是否接触过疑似患者', trigger: 'blur' }],
-        peopleStatus:[{ required: true, message: '请选择人员状态', trigger: 'blur' }],
+        userName:[{ required: true, message: '请选择上报人员', trigger: 'change' }],
+        isGoDanger:[{ required: true, message: '请选择是否去过风险地区', trigger: 'change' }],
+        isVaccine:[{ required: true, message: '请选择是否打过疫苗', trigger: 'change' }],
+        isEngage:[{ required: true, message: '请选择是否接触过疑似患者', trigger: 'change' }],
+        peopleStatus:[{ required: true, message: '请选择人员状态', trigger: 'change' }],
 
       },
       //人员列表信息
@@ -397,6 +399,62 @@ export default {
       this.dialogForm.isEngage = ''
       this.dialogForm.peopleStatus = ''
       this.dialogForm.exAnswerList = []
+    },
+    //提交上报
+    addDialog(){
+      this.$refs.dialogForm.validate((valid) => {
+        if (valid) {
+          //判断是否进行申报
+          if(this.isReport){
+            //校验额外问题列表
+            for(let i = 0;i < this.problemList.length; i++){
+              //判断额外的问题是否为必填
+              if(this.problemList[i].isRequired == 1){
+                //判断该问题是否为多选
+                if(this.problemList[i].optionType == 2){
+                  //判断该问题答案是否填写
+                  if(this.dialogForm.exAnswerList[i].length == 0){
+                    this.$message.error('请填写'+ this.problemList[i].optionTitle)
+                    return false
+                  }else{
+                    this.dialogForm.exProblemList[i] = this.problemList[i].optionTitle
+                  }
+                }else{
+                  //判断该问题是否填写
+                  if(this.dialogForm.exAnswerList[i] == undefined){
+                    this.$message.error('请填写'+ this.problemList[i].optionTitle)
+                    return false
+                  }else{
+                    this.dialogForm.exProblemList[i] = this.problemList[i].optionTitle
+                  }
+                }
+              }else{
+                //判断该问题是否为多选 
+                if(this.problemList[i].optionType == 2){
+                  //判断该问题答案是否填写
+                  if(this.dialogForm.exAnswerList[i].length !=0){
+                    this.dialogForm.exProblemList[i] = this.problemList[i].optionTitle
+                  }
+                }else{
+                  if(this.dialogForm.exAnswerList[i] != undefined){
+                    this.dialogForm.exProblemList[i] = this.problemList[i].optionTitle
+                  }
+                }
+                
+              }
+            }
+            //提交表单
+            // alert('submit!');
+          }else{
+            this.$message.error('未开始上报信息')
+            return false
+          }
+          
+        } else {
+          console.log('error submit!!');
+          return false;
+        }
+      });
     },
   },
   created(){
